@@ -5,7 +5,7 @@ import ctypes
 ctypes.windll.user32.SetProcessDPIAware()
 
 from entities import (Planet, vec, calculate_planet_forces, check_collisions, DISPLAY_WIDTH, DISPLAY_HEIGHT,
-                      calculate_center_of_mass, SCREEN_CENTER, print_debug_values, COLORS, Info)
+                      calculate_center_of_mass, SCREEN_CENTER, print_debug_values, COLORS, Info, create_planet)
 
 pygame.init()
 print(f"\n\nGravity")
@@ -19,6 +19,7 @@ pygame.display.set_caption("Gravity")
 FPS = 60
 bounce_screen = False
 is_physics_enabled = True
+is_planet_created = False
 
 # test data
 Planets = []
@@ -31,6 +32,8 @@ center_of_mass_pos = vec((0, 0))
 view_id = 0
 views_amount = 0
 view_offset = vec((0, 0))
+mouse_down_pos = vec((0, 0))
+mouse_up_pos = vec((0, 0))
 while True:
     # read keys
     for event in pygame.event.get():
@@ -48,8 +51,18 @@ while True:
             elif event.key == K_TAB:
                 view_id += 1
 
+        if event.type == MOUSEBUTTONDOWN:
+            mouse_pos_tuple = pygame.mouse.get_pos()
+            mouse_down_pos.x = mouse_pos_tuple[0]
+            mouse_down_pos.y = mouse_pos_tuple[1]
+        if event.type == MOUSEBUTTONUP:
+            mouse_pos_tuple = pygame.mouse.get_pos()
+            mouse_up_pos.x = mouse_pos_tuple[0]
+            mouse_up_pos.y = mouse_pos_tuple[1]
+            is_planet_created = True
+
     display_surface.fill((0, 0, 0))
-    views_amount = len(Planets) + 1
+    views_amount = len(Planets)
     if view_id > views_amount:
         view_id = 0
 
@@ -60,21 +73,19 @@ while True:
         center_of_mass_pos = calculate_center_of_mass(Planets)
 
         for trail in Trails:
-            is_flagged_for_deletion = trail.update()
+            is_flagged_for_deletion = trail.update()  # TODO: Delete trail when it's off screen
             if is_flagged_for_deletion:
                 Trails.remove(trail)
 
         for planet in Planets:
-            new_trail = planet.move(bounce_screen)
+            new_trail = planet.move(bounce_screen)  # TODO: Not add new trail when it's off screen
             Trails.append(new_trail)
 
     if view_id == 0:
-        view_offset = vec((0, 0))
-    elif view_id == 1:
         view_offset = center_of_mass_pos - SCREEN_CENTER
     else:
         for index, planet in enumerate(Planets):
-            if index == view_id - 2:
+            if index == view_id - 1:
                 view_offset = planet.pos - SCREEN_CENTER
                 break
 
@@ -85,12 +96,18 @@ while True:
 
     Info.draw_center_of_mass(center_of_mass_pos - view_offset, display_surface)
 
+    if is_planet_created:
+        Planets.append(create_planet(start_pos=mouse_down_pos.copy() + view_offset,
+                                     velocity_pos=mouse_up_pos.copy() + view_offset))
+        is_planet_created = False
+
     # debug
     print_debug_values([f"Trails: {len(Trails)}",
                         f"Planets: {len(Planets)}",
                         f"Center of mass: {center_of_mass_pos.x:.0f}, {center_of_mass_pos.y:.0f}",
                         f"Physics: {is_physics_enabled}",
-                        f"View_id: {view_id}"],
+                        f"View_id: {view_id}",
+                        f"Current_pos: {(view_offset + SCREEN_CENTER).x:.0f}, {(view_offset + SCREEN_CENTER).y:.0f}"],
                        font=standard_font, surface=display_surface)
 
     # refresh screen

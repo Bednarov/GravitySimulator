@@ -8,6 +8,7 @@ DEFAULT_DENSITY = 0.5
 DISPLAY_WIDTH = 3840
 DISPLAY_HEIGHT = 2160
 SCREEN_CENTER = vec((DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2))
+VELOCITY_SCALE = 20.0
 
 COLORS = {
     "White": (255, 255, 255),
@@ -166,3 +167,9 @@ def check_collisions(planet_list: list) -> list:
                         collisions_detected = True
                         break
     return planet_list
+
+
+def create_planet(start_pos: vec, velocity_pos: vec) -> Planet:
+    velocity_vector = start_pos - velocity_pos
+    velocity_vector /= VELOCITY_SCALE
+    return Planet(pos=start_pos, vel=velocity_vector, mass=500.0, color=COLORS["Green"])
